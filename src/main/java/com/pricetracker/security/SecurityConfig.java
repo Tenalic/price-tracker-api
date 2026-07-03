@@ -55,8 +55,22 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         // Public endpoints
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        // Static files (frontend)
-                        .requestMatchers("/", "/*.html", "/assets/**", "/index.html").permitAll()
+                        // Static files (frontend) - comprehensive patterns
+                        .requestMatchers(
+                                "/",
+                                "/index.html",
+                                "/*.html",
+                                "/assets/**",
+                                "/*.js",
+                                "/*.css",
+                                "/*.ico",
+                                "/*.png",
+                                "/*.svg",
+                                "/*.webp",
+                                "/*.json",
+                                "/manifest.json",
+                                "/favicon.ico"
+                        ).permitAll()
 
                         // All other endpoints require authentication
                         .anyRequest().authenticated()

@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${urlBdd:jdbc:postgresql://localhost:5432/pricetracker}
+    username: ${userBdd:pricetracker}
+    password: ${passwordBdd:pricetracker}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      schema: ${schemaBdd}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: non_null
+
+# --- Configuration JWT personnalisée ---
+app:
+  jwt:
+    secret: ${JWT_SECRET:VotreCleSecreteSuperLongueEtComplexeDeMinimum256BitsIci1234567890ABCDEF}
+    expiration-ms: 86400000

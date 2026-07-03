@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: pricetracker
+      POSTGRES_USER: pricetracker
+      POSTGRES_PASSWORD: pricetracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pricetracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  price-tracker-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FRONTEND_REPO_URL: ${FRONTEND_REPO_URL:-https://github.com/Tenalic/price-tracker.git}
+    environment:
+      urlBdd: ${urlBdd:-jdbc:postgresql://postgres:5432/pricetracker}
+      userBdd: ${userBdd:-pricetracker}
+      passwordBdd: ${passwordBdd:-pricetracker}
+      JWT_SECRET: ${JWT_SECRET:-VotreCleSecreteSuperLongueEtComplexeDeMinimum256BitsIci1234567890ABCDEF}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

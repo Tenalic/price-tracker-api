@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -16,7 +17,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import org.springframework.http.HttpMethod;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -43,7 +46,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // Disable CSRF (stateless JWT)
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
 
                 // Enable CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -53,26 +56,24 @@ public class SecurityConfig {
 
                 // Authorization rules
                 .authorizeHttpRequests(authz -> authz
-                        // Public endpoints
+                        // Public auth endpoints
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        // Static files (frontend) - comprehensive patterns
-                        .requestMatchers(
-                                "/",
-                                "/index.html",
-                                "/*.html",
-                                "/assets/**",
-                                "/*.js",
-                                "/*.css",
-                                "/*.ico",
-                                "/*.png",
-                                "/*.svg",
-                                "/*.webp",
-                                "/*.json",
-                                "/manifest.json",
-                                "/favicon.ico"
-                        ).permitAll()
 
-                        // All other endpoints require authentication
+                        // --- API endpoints (sécurisés) ---
+                        // Toutes les requêtes /api/** (GET, POST, PUT, DELETE) nécessitent l'authentification
+                        // sauf les auth endpoints déjà déclarés ci-dessus
+                        .requestMatchers("/api/**").authenticated()
+
+                        // --- SPA React (servi par le back, même origine) ---
+                        // Tout GET restant correspond au SPA : la coquille index.html,
+                        // les ressources statiques (/assets/**, JS, CSS, favicon...) ET
+                        // les routes React Router (/ma-liste, /profil...) qui seront
+                        // forwardées vers index.html par SpaController.
+                        // Ces ressources DOIVENT être publiques : la sécurité porte sur
+                        // les données (/api/**, déjà filtrées ci-dessus), pas sur l'app.
+                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
+
+                        // All other endpoints (POST, PUT, DELETE, etc.) require authentication
                         .anyRequest().authenticated()
                 )
 
@@ -80,8 +81,8 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
 
                 // Disable default login form and HTTP Basic
-                .httpBasic(basic -> basic.disable())
-                .formLogin(form -> form.disable());
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable);
 
         return http.build();
     }
@@ -100,8 +101,8 @@ public class SecurityConfig {
                 "https://price-tracker-api-sz7p.onrender.com"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setExposedHeaders(Arrays.asList("Authorization"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
